@@ -1,14 +1,19 @@
+import sys
 import requests
 import mysql.connector
 from bs4 import BeautifulSoup
 from os import environ as env
 from datetime import date
 
+if len(sys.argv) > 1:
+    annee = sys.argv[1]
+else:
+ annee = None
 
 def extract_contrib(elements):
     for el in elements:
         if 'contributions' in el.text:
-            return el.get_text().strip().split('contributions')[0].strip()
+            return el.get_text().strip().split('contributions')[0].strip().replace(',','')
     return 0
 
 db = mysql.connector.connect(
@@ -25,9 +30,9 @@ cursor.execute('''
 ''')
 
 resultat = dict()
-annee = '2021'
+
 for user in cursor:
-    res = requests.get(f'https://github.com/{user[0]}?tab=overview&from={annee}-01-01&to={date.today().strftime("%Y-%m-%d")}')
+    res = requests.get(f'https://github.com/{user[0]}?tab=overview' + ('' if annee else f'&from={annee}-01-01&to={annee}-12-31'))
     soup = BeautifulSoup(res.text, 'html.parser')
     res = soup.find_all('h2', class_='f4')
     resultat[user[0]] = int(extract_contrib(res))
