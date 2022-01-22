@@ -34,7 +34,7 @@ async def stats(repos: str):
             if not commit['author']:
                 continue
             nbr_com = result.get(commit['author']['login'], {}).get('commits', 0)
-            if commit['author']['login'] not in result:
+            if commit['author']['login'] not in list(result.keys()):
                 result[commit['author']['login']] = {'additions': 0, 'deletions': 0}
             result[commit['author']['login']]['commits'] = nbr_com+1
 
@@ -54,7 +54,7 @@ async def stats(repos: str):
     return {
         'Nom': fullname,
         'Branch': branch,
-        'users': result
+        'Users': result
     }
 
 
