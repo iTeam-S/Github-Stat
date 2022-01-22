@@ -1,9 +1,8 @@
-from nturl2path import url2pathname
 import requests as req
 from fastapi import FastAPI
+from os import environ as env
 from typing import List, Dict
 from dotenv import load_dotenv
-from os import environ as env
 
 load_dotenv()
 webserver = FastAPI()
@@ -18,12 +17,16 @@ async def stats(repos: str):
     data: List = [True]
     result: Dict = {}
     page: int = 1
+
+    # recuperation info pour le repos specifié
     info = req.get(
             f'https://api.github.com/repos/iTeam-S/{repos}?page={page}&per_page=100',
             headers={'Authorization': 'token ' + env.get('GITHUB_TOKEN')}
         ).json()
     fullname = info['full_name'],
     branch = info['default_branch']
+
+    # parcours de chaque page, pour afficer tous les commits.
     while len(data) > 0:
         data = req.get(
             f'https://api.github.com/repos/iTeam-S/{repos}/commits?sha={branch}&page={page}&per_page=100',
@@ -38,6 +41,7 @@ async def stats(repos: str):
                 result[commit['author']['login']] = {'additions': 0, 'deletions': 0}
             result[commit['author']['login']]['commits'] = nbr_com+1
 
+            # envoie de requete pour chaque detail d'un commit.
             details = req.get(
                 commit['url'],
                 headers={'Authorization': 'token ' + env.get('GITHUB_TOKEN')}
