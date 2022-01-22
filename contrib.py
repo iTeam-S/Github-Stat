@@ -32,7 +32,7 @@ cursor.execute('''
 resultat = dict()
 
 for user in cursor:
-    res = requests.get(f'https://github.com/{user[0]}?tab=overview' + ('' if annee else f'&from={annee}-01-01&to={annee}-12-31'))
+    res = requests.get(f'https://github.com/{user[0]}?tab=overview' + ('' if annee else f'&from={annee}-01-01&to={annee}-10-25'))
     soup = BeautifulSoup(res.text, 'html.parser')
     res = soup.find_all('h2', class_='f4')
     resultat[user[0]] = int(extract_contrib(res))
