@@ -9,7 +9,7 @@ webserver = FastAPI()
 
 
 @webserver.get("/{repos}")
-async def stats(repos: str):
+async def stats(repos: str, commit_only: bool = False):
     '''
         API retournant le nombre de commit par utilisateur
         pour un repos donnée.
@@ -38,22 +38,23 @@ async def stats(repos: str):
                 continue
             nbr_com = result.get(commit['author']['login'], {}).get('commits', 0)
             if commit['author']['login'] not in list(result.keys()):
-                result[commit['author']['login']] = {'additions': 0, 'deletions': 0}
+                result[commit['author']['login']] = {} \
+                    if commit_only else {'additions': 0, 'deletions': 0}
             result[commit['author']['login']]['commits'] = nbr_com+1
 
-            # envoie de requete pour chaque detail d'un commit.
-            details = req.get(
-                commit['url'],
-                headers={'Authorization': 'token ' + env.get('GITHUB_TOKEN')}
-            ).json()
-            addition: int = 0
-            deletion: int = 0 
-            for detail in details['files']:
-                addition += detail['additions']
-                deletion += detail['deletions']
-            result[commit['author']['login']]['additions'] += addition
-            result[commit['author']['login']]['deletions'] += deletion
-
+            if not commit_only:
+                # envoie de requete pour chaque detail d'un commit.
+                details = req.get(
+                    commit['url'],
+                    headers={'Authorization': 'token ' + env.get('GITHUB_TOKEN')}
+                ).json()
+                addition: int = 0
+                deletion: int = 0 
+                for detail in details['files']:
+                    addition += detail['additions']
+                    deletion += detail['deletions']
+                result[commit['author']['login']]['additions'] += addition
+                result[commit['author']['login']]['deletions'] += deletion
 
     return {
         'Nom': fullname,
