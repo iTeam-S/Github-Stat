@@ -1,5 +1,7 @@
+import mysql.connector
 import requests as req
 from fastapi import FastAPI
+from threading import Thread
 from os import environ as env
 from typing import List, Dict
 from dotenv import load_dotenv
@@ -8,12 +10,31 @@ load_dotenv()
 webserver = FastAPI()
 
 
-@webserver.get("/{repos}")
-async def stats(repos: str, commit_only: bool = False):
-    '''
-        API retournant le nombre de commit par utilisateur
-        pour un repos donnée.
-    '''
+def point_git(repos_id):
+    db = mysql.connector.connect(
+        host='iteam-s.mg',
+        user=env.get('ITEAMS_DB_USER'),
+        password=env.get('ITEAMS_DB_PASSWORD')
+    )
+    cursor = db.cursor()
+
+    cursor.execute("""
+        SELECT repos FROM STAT_MEMBRE.projet WHERE id = %s
+    """, (repos_id,))
+    repos = cursor.fetchone()
+    
+    res = get_stat(repos[0].split('/')[-1], commit_only=True)
+    for user in res['Users'].keys():
+        cursor.execute("""
+            UPDATE STAT_MEMBRE.membre_projet mp JOIN ITEAMS.membre m
+            ON m.id = mp.id_membre SET point_git = %s
+            WHERE m.user_github = %s AND mp.id_projet = %s
+        """, (res['Users'][user]['commits'], user, repos_id))
+        db.commit()
+    db.close()
+
+
+def get_stat(repos, commit_only):
     data: List = [True]
     result: Dict = {}
     page: int = 1
@@ -55,13 +76,32 @@ async def stats(repos: str, commit_only: bool = False):
                     deletion += detail['deletions']
                 result[commit['author']['login']]['additions'] += addition
                 result[commit['author']['login']]['deletions'] += deletion
-
     return {
         'Nom': fullname,
         'Branch': branch,
         'Users': result
     }
 
+
+@webserver.get("/{repos}")
+async def stats(repos: str, commit_only: bool = False):
+    '''
+        API retournant le nombre de commit par utilisateur
+        pour un repos donnée.
+    '''
+    return get_stat(repos, commit_only)
+
+
+@webserver.get("/update/{repos_id}")
+async def update(repos_id: int):
+    """
+        API utilisé pour remplir les données de point git STAT membre
+    """
+    proc = Thread(target=point_git, args=[repos_id])
+    proc.start()
+    return {
+        "status": "ok"
+    }
 
 
 
