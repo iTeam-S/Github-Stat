@@ -22,8 +22,10 @@ def point_git(repos_id):
         SELECT repos FROM STAT_MEMBRE.projet WHERE id = %s
     """, (repos_id,))
     repos = cursor.fetchone()
-    
-    res = get_stat(repos[0].split('/')[-1], commit_only=True)
+    rep = repos[0].split('/')[-1]
+    if rep.endswith('.git'):
+        rep = rep.replace('.git', '')
+    res = get_stat(rep, commit_only=True)
     for user in res['Users'].keys():
         cursor.execute("""
             UPDATE STAT_MEMBRE.membre_projet mp JOIN ITEAMS.membre m
