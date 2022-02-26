@@ -33,6 +33,18 @@ def point_git(repos_id):
             WHERE m.user_github = %s AND mp.id_projet = %s
         """, (res['Users'][user]['commits'], user, repos_id))
         db.commit()
+        #total expérience membre
+        cursor.execute(
+            """
+                UPDATE ITEAMS.membre m 
+                SET point_experience = IFNULL(m.point_experience, 0)  + 
+                (SELECT (impact*25) + (implication*20) + (difficulte*15) + (deadline*10) + (3*point_git) 
+                FROM STAT_MEMBRE.membre_projet WHERE id_membre = m.id AND id_projet = %s)
+                WHERE m.user_github= %s
+            """, (repos_id, user)
+        )
+        db.commit()
+
     db.close()
 
 
@@ -107,7 +119,4 @@ async def update(repos_id: int):
 
 
 
-
-
-
-
+    
