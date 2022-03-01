@@ -107,10 +107,14 @@ async def stats(repos: str, commit_only: bool = False):
 
 
 @webserver.get("/update/{repos_id}")
-async def update(repos_id: int):
+async def update(repos_id: int, token: str):
     """
         API utilisé pour remplir les données de point git STAT membre
     """
+    if not token == env.get('SECRET_TOKEN'):
+        return {
+            'status': 'erreur token'
+        }
     proc = Thread(target=point_git, args=[repos_id])
     proc.start()
     return {
